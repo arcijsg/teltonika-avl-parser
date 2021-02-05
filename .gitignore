@@ -1,4 +1,7 @@
+# Artūrs added Composer binary at the project root
 /composer
+# Often would make sense to be versioned
+composer.lock
 /vendor
 .env
 */.env

@@ -8,10 +8,24 @@
             "email": "arturs.gailitis@gmail.com"
         }
     ],
+    "autoload": {
+        "classmap": [
+        ],
+        "psr-4": {
+            "Telto\\": "src/"
+        },
+        "files": [
+            "src/helpers.php"
+        ]
+    },
     "minimum-stability": "dev",
     "require": {
         "guzzlehttp/guzzle": "^7.0",
-        "vlucas/phpdotenv": "5.3.x-dev"
+        "vlucas/phpdotenv": "5.3.x-dev",
+        "monolog/monolog": "2.x-dev",
+        "vanilla/garden-cli": "dev-master",
+        "phpinnacle/buffer": "^1.2",
+        "nesbot/carbon": "2.x-dev"
     },
     "require-dev": {
         "psy/psysh": "@stable"
