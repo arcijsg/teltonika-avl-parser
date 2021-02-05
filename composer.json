@@ -1,0 +1,19 @@
+{
+    "name": "arcijsg/decode-telto-gps",
+    "description": "A servicd which fetch at regular intervals GPS-marked readings from most probably - sensor devices, decodes them according to Teltonika Data Sending Protocol and stores from later analysis",
+    "type": "project",
+    "authors": [
+        {
+            "name": "Artūrs Gailītis",
+            "email": "arturs.gailitis@gmail.com"
+        }
+    ],
+    "minimum-stability": "dev",
+    "require": {
+        "guzzlehttp/guzzle": "^7.0",
+        "vlucas/phpdotenv": "5.3.x-dev"
+    },
+    "require-dev": {
+        "psy/psysh": "@stable"
+    }
+}
