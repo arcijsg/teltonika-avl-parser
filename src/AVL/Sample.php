@@ -53,4 +53,14 @@ class Sample extends Fragment
         $gpsBytes = $this->sliceBytes($ioBytesCount, self::BYTE_OFFSET_IO);
         // $this->gps = new IO($ioBytes);
     }
+
+    public function getGPS(): GPS
+    {
+        return $this->gps;
+    }
+
+    public function getPriority(): int
+    {
+        return $this->priority;
+    }
 }
