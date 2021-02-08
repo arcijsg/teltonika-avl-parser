@@ -7,8 +7,12 @@
 use Dotenv\Dotenv;
 use Garden\Cli\Cli;
 use GuzzleHttp\ClientInterface;
-use Monolog\Handler\StreamHandler;
+use Monolog\Handler\{
+    StreamHandler,
+    AbstractProcessingHandler
+};
 use Monolog\Logger;
+use \Monolog\Formatter\LineFormatter;
 use Telto\Decoder\{
     AVL as AVLDecoder,
     Identity as IdentityDecoder
@@ -38,6 +42,7 @@ $cli = new Cli();
 const ARG_OFFSET = "offset";
 const ARG_BATCH = "batch";
 const ARG_RETURN_RAW = "raw";
+const ARG_RAW_SAMPLES_LOG = "raw-log";
 
 $cli->description('Read and decode a sample from sensors API source')
     ->opt(
@@ -54,9 +59,15 @@ $cli->description('Read and decode a sample from sensors API source')
     )
     ->opt(
         ARG_RETURN_RAW.':'.substr(ARG_RETURN_RAW, 0, 1),
-        'How many readings to request at a time?',
+        'Just store raw readings without decoding them?',
         false,
         "boolean"
+    )
+    ->opt(
+        ARG_RAW_SAMPLES_LOG,
+        'log file where to store raw samples in hex format',
+        false,
+        "string"
     )
 ;
 
@@ -67,12 +78,28 @@ $offset = $args->getOpt(ARG_OFFSET, 0);
 $batchSize = $args->getOpt(ARG_BATCH, 1);
 // If true, no decoding would be attempted
 $keepRaw = $args->getOpt(ARG_RETURN_RAW, false);
+$rawLog = $args->getOpt(ARG_RETURN_RAW, env("RAW_SAMPLES_LOG", ""));
 
 // MARK: Invoke requested action using provided args
 // ===========================================================================
 
 $httpClient = defaultHttpClient();
-$logger = consoleLogger("heartbeat");
+
+// @see https://seldaek.github.io/monolog/doc/02-handlers-formatters-processors.html
+// for plethora of available Monolog log handlers and formatters, which
+$logger = new Logger("sampler");
+$logger->pushHandler(
+    consoleLogger("sampler", Logger::DEBUG)
+);
+
+if (! empty($rawLog)) {
+    $logHandler = createStreamLogger(
+        $rawLog,
+        $logLevel = Logger::INFO,
+        "[%datetime% %level_name%]: %message%\n"
+    );
+    $logger->pushHandler($logHandler);
+}
 
 if ($keepRaw) {
     $decoder = new IdentityDecoder();
@@ -97,9 +124,10 @@ try {
     exit(1);
 }
 
-$logger->info(
-    var_export($readings, true)
-);
+foreach ($readings as $avlPacket) {
+    $rawPackage = $avlPacket->toHexString();
+    $logger->info($rawPackage);
+}
 // breakpoint();
 // exit(0);
 
@@ -121,11 +149,25 @@ function defaultHttpClient(): ClientInterface
     return $client;
 }
 
-function consoleLogger($channel): Logger
+function consoleLogger(
+    $logLevel = Logger::INFO,
+    $lineFormat = "[%datetime%] %level_name%: %message% %context%\n"
+): AbstractProcessingHandler
 {
-    $log = new Logger($channel ?: "chatter");
-    $logHandler = new StreamHandler('php://stdout', Logger::DEBUG);
-    $log->pushHandler($logHandler);
+    return createStreamLogger('php://stdout', Logger::DEBUG);
+}
 
-    return $log;
+function createStreamLogger(
+    $target,
+    $logLevel = Logger::INFO,
+    $lineFormat = "[%datetime%] %level_name%: %message% %context%\n"
+): AbstractProcessingHandler
+{
+    $logFormatter = new LineFormatter($lineFormat);
+    $logFormatter->ignoreEmptyContextAndExtra(true);
+
+    $logHandler = new StreamHandler($target, $logLevel);
+    $logHandler->setFormatter($logFormatter);
+
+    return $logHandler;
 }

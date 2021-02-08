@@ -2,11 +2,6 @@
 
 namespace Telto\AVL;
 
-// @see https://github.com/phpinnacle/buffer/blob/master/src/ByteBuffer.php
-use PHPinnacle\Buffer\{
-    ByteBuffer,
-    BufferOverflow
-};
 use Carbon\Carbon;
 
 /**
@@ -16,7 +11,7 @@ use Carbon\Carbon;
  * @see https://wiki.teltonika-gps.com/view/Teltonika_Data_Sending_Protocols#Codec_for_device_data_sending
  *      ("Codec 8 -> AVL Data" under )
  */
-class Sample extends ByteBuffer
+class Sample extends Fragment
 {
     const BYTE_OFFSET_TIMESTAMP = 0;
     const BYTE_OFFSET_PRIORITY = 8;
@@ -39,16 +34,10 @@ class Sample extends ByteBuffer
     protected $gps;
     protected $io;
 
-    public function __construct(string $buffer)
-    {
-        parent::__construct($buffer);
-        $this->parse();
-    }
-
     /**
      * @todo throw if unexpected size or format?
      */
-    public function parse()
+    public function parse(): void
     {
         $tsBytes = $this->readUInt64(self::BYTE_OFFSET_TIMESTAMP);
         $this->timestamp = Carbon::createFromTimestampMs($tsBytes);
@@ -56,12 +45,12 @@ class Sample extends ByteBuffer
         $this->priority = $this->readUInt8(self::BYTE_OFFSET_PRIORITY);
 
         // TODO: GPS
-        $gpsBytes = $this->slice(15, self::BYTE_OFFSET_GPS);
-        // $this->gps = new GPS($gpsBytes);
+        $gpsBytes = $this->sliceBytes(15, self::BYTE_OFFSET_GPS);
+        $this->gps = new GPS($gpsBytes);
 
         // TODO: IO
         $ioBytesCount = $this->size() - 24; // 24 bytes is taken by other fields in total
-        $gpsBytes = $this->slice($ioBytesCount, self::BYTE_OFFSET_IO);
+        $gpsBytes = $this->sliceBytes($ioBytesCount, self::BYTE_OFFSET_IO);
         // $this->gps = new IO($ioBytes);
     }
 }
